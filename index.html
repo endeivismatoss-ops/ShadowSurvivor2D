@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#100923">
+<title>Shadow Survivor 2D</title>
+<style>
+:root{color-scheme:dark;--purple:#b34cff;--cyan:#56f5df}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090713;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+#game{display:block;width:100vw;height:100dvh;background:#101d1b;image-rendering:pixelated}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(135deg,#090713eF,#16082be8);z-index:5}
+.panel{width:min(460px,100%);padding:25px 22px;border:1px solid #a34bff;border-radius:20px;background:linear-gradient(145deg,#17102c,#090b1b);box-shadow:0 0 35px #8d2cff35;text-align:center}
+.logo{font-size:clamp(32px,9vw,52px);font-weight:1000;line-height:.95;letter-spacing:-2px;text-shadow:0 0 18px #a72dff}
+.logo span{display:block;color:#c44dff}.sub{color:#c9c0e8;margin:15px 0 20px}
+button{font:700 16px system-ui;color:white;border:1px solid #b34cff;background:linear-gradient(90deg,#6423ad,#9c2fe0);border-radius:12px;padding:13px 18px;width:100%;margin:6px 0;box-shadow:0 0 15px #9b37f833}
+button.secondary{background:#151329;border-color:#51416e}.small{font-size:12px;color:#b7aecb;line-height:1.5}
+#hud{position:fixed;top:env(safe-area-inset-top,8px);left:12px;right:12px;display:none;pointer-events:none;text-shadow:0 2px 3px #000;font-weight:800}
+#toprow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+#healthbox{width:min(190px,46vw);background:#171025cc;border:1px solid #7d49a5;border-radius:10px;padding:7px}
+.bar{height:9px;background:#31253b;border-radius:8px;overflow:hidden;margin-top:4px}.fill{height:100%;width:100%;background:linear-gradient(90deg,#28e5a0,#a3ff72)}
+#xpbar{position:absolute;top:48px;left:0;right:0;height:5px;background:#2b2040;border-radius:5px;overflow:hidden}#xpfill{height:100%;width:0;background:#b64cff}
+#controls{position:fixed;inset:0;display:none;pointer-events:none}
+#stick{position:absolute;left:20px;bottom:calc(25px + env(safe-area-inset-bottom));width:122px;height:122px;border-radius:50%;border:2px solid #c9b2e866;background:#17122c99;pointer-events:auto;touch-action:none}
+#nub{position:absolute;left:34px;top:34px;width:50px;height:50px;border-radius:50%;background:#a64affaa;border:2px solid #e3baff;box-shadow:0 0 18px #9d40ff66}
+#attack{position:absolute;right:24px;bottom:calc(35px + env(safe-area-inset-bottom));width:78px;height:78px;border-radius:50%;background:#6e2bbacc;border:2px solid #e3baff;display:grid;place-items:center;font-size:30px;pointer-events:auto;touch-action:none}
+#pause{position:absolute;right:12px;top:82px;width:44px;height:44px;padding:0;margin:0;background:#1b1436dd;pointer-events:auto}
+#tip{position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:#fff9;pointer-events:none}
+#levelup .panel{max-width:360px}
+@media(min-width:800px){#stick{left:35px;bottom:30px}#attack{right:40px;bottom:35px}#tip{font-size:13px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="menu" class="overlay"><div class="panel">
+<div class="logo">SHADOW <span>SURVIVOR</span><small style="font-size:20px;letter-spacing:4px">2D</small></div>
+<p class="sub">Sobrevive a la oscuridad. Explora, combate y evoluciona.</p>
+<button id="start">⚔ JUGAR</button><button class="secondary" id="how">CÓMO JUGAR</button>
+<p id="help" class="small" hidden>Mueve al héroe con el joystick. En ordenador usa WASD o las flechas. El héroe ataca automáticamente al enemigo más cercano. Recoge orbes para subir de nivel y sobrevive al jefe.</p>
+<p class="small">Juego web · Compatible con iPhone, Android y PC</p>
+</div></div>
+<div id="hud"><div id="toprow"><div id="healthbox">❤️ <span id="hptext">100 / 100</span><div class="bar"><div id="hpfill" class="fill"></div></div><div style="font-size:12px;margin-top:4px">Nivel <span id="level">1</span> · XP <span id="xptext">0 / 5</span></div></div><div style="background:#171025cc;border:1px solid #7d49a5;padding:8px 10px;border-radius:10px">🪙 <span id="coins">0</span><br><span style="font-size:12px">Derrotados: <span id="kills">0</span></span></div></div><div id="xpbar"><div id="xpfill"></div></div></div>
+<div id="controls"><div id="stick"><div id="nub"></div></div><button id="attack" aria-label="Atacar">⚔</button><button id="pause">Ⅱ</button></div><div id="tip" hidden>Mueve el joystick · Ataque automático al enemigo más cercano</div>
+<div id="levelup" class="overlay" hidden><div class="panel"><h2>✨ ¡SUBISTE DE NIVEL!</h2><p>Elige una mejora</p><button data-up="damage">⚔ Ataque +25%</button><button data-up="health">❤️ Vida máxima +25</button><button data-up="speed">👟 Velocidad +15%</button></div></div>
+<div id="end" class="overlay" hidden><div class="panel"><div class="logo" id="endtitle">FIN DEL JUEGO</div><p id="endtext" class="sub"></p><button id="again">VOLVER A JUGAR</button><button class="secondary" id="home">MENÚ PRINCIPAL</button></div></div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=innerWidth,H=innerHeight,dpr=1,last=0,raf=0,state='menu',player,enemies=[],orbs=[],particles=[],keys={},stick={x:0,y:0},coins=0,kills=0,spawn=0,attackTimer=0,gameTime=0,bossSpawned=false;
+const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function resize(){W=innerWidth;H=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function newGame(){player={x:0,y:0,r:12,hp:100,maxHp:100,speed:185,damage:25,level:1,xp:0,next:5,invuln:0,face:1};enemies=[];orbs=[];particles=[];coins=0;kills=0;spawn=0;attackTimer=.25;gameTime=0;bossSpawned=false;state='play';$('menu').hidden=true;$('end').hidden=true;$('levelup').hidden=true;$('hud').style.display='block';$('controls').style.display='block';$('tip').hidden=false;updateHud()}
+function updateHud(){$('hptext').textContent=Math.ceil(player.hp)+' / '+player.maxHp;$('hpfill').style.width=Math.max(0,player.hp/player.maxHp*100)+'%';$('level').textContent=player.level;$('xptext').textContent=player.xp+' / '+player.next;$('xpfill').style.width=player.xp/player.next*100+'%';$('coins').textContent=coins;$('kills').textContent=kills}
+function spawnEnemy(boss=false){let a=rand(0,Math.PI*2),r=Math.max(W,H)*.62+50;enemies.push({x:player.x+Math.cos(a)*r,y:player.y+Math.sin(a)*r,r:boss?28:rand(10,15),hp:boss?260:35+player.level*5,maxHp:boss?260:35+player.level*5,speed:boss?42:rand(38,65)+player.level*2,damage:boss?22:8,boss,hit:0})}
+function burst(x,y,color,n=7){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),s=rand(25,115);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:rand(.2,.5),color})}}
+function gainXP(n){player.xp+=n;while(player.xp>=player.next){player.xp-=player.next;player.level++;player.next=Math.floor(player.next*1.45+2);state='levelup';$('levelup').hidden=false;$('controls').style.display='none';break}}
+function nearest(){let best=null,bd=Infinity;for(const e of enemies){let d=dist(player,e);if(d<bd){bd=d;best=e}}return best}
+function update(dt){if(state!=='play')return;gameTime+=dt;spawn-=dt;attackTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);
+ if(spawn<=0&&enemies.length<45){spawn= Math.max(.35,1.1-gameTime*.008);spawnEnemy();if(gameTime>45&&!bossSpawned){spawnEnemy(true);bossSpawned=true}}
+ let ix=stick.x,iy=stick.y;if(keys.ArrowLeft||keys.a)ix-=1;if(keys.ArrowRight||keys.d)ix+=1;if(keys.ArrowUp||keys.w)iy-=1;if(keys.ArrowDown||keys.s)iy+=1;let m=Math.hypot(ix,iy);if(m>1){ix/=m;iy/=m}player.x+=ix*player.speed*dt;player.y+=iy*player.speed*dt;if(ix)player.face=Math.sign(ix);
+ for(let i=enemies.length-1;i>=0;i--){let e=enemies[i],dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy)||1;e.x+=dx/d*e.speed*dt;e.y+=dy/d*e.speed*dt;e.hit=Math.max(0,e.hit-dt);if(d<e.r+player.r&&player.invuln<=0){player.hp-=e.damage;player.invuln=.65;burst(player.x,player.y,'#ff477e',5);if(player.hp<=0){end(false);return}}
+ }
+ if(attackTimer<=0){let e=nearest();if(e&&dist(player,e)<175){attackTimer=.48;let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy)||1;e.hp-=player.damage;e.hit=.12;burst(e.x-dx/d*e.r,e.y-dy/d*e.r,'#e9a5ff',4);particles.push({x:player.x,y:player.y,t:.18,slash:true,ang:Math.atan2(dy,dx)});if(e.hp<=0){if(e.boss){coins+=35;for(let j=0;j<8;j++)orbs.push({x:e.x+rand(-20,20),y:e.y+rand(-20,20),r:5,xp:2})}else{coins+=1;orbs.push({x:e.x,y:e.y,r:5,xp:1})}kills++;burst(e.x,e.y,e.boss?'#d34dff':'#8effc6',e.boss?24:9);enemies.splice(enemies.indexOf(e),1)}}}
+ for(let i=orbs.length-1;i>=0;i--){let o=orbs[i],d=dist(player,o);if(d<95){o.x+=(player.x-o.x)*Math.min(1,dt*3);o.y+=(player.y-o.y)*Math.min(1,dt*3)}if(d<player.r+o.r+4){gainXP(o.xp);orbs.splice(i,1);if(state!=='play')break}}
+ for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.t-=dt;if(p.vx){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.92;p.vy*=.92}if(p.t<=0)particles.splice(i,1)}
+ updateHud()
+}
+function draw(){ctx.clearRect(0,0,W,H);let camx=player?player.x:0,camy=player?player.y:0;ctx.fillStyle='#10251f';ctx.fillRect(0,0,W,H);
+ // forest floor tiles
+ let tile=48,ox=((W/2-camx)%tile+tile)%tile,oy=((H/2-camy)%tile+tile)%tile;
+ for(let y=oy-tile;y<H+tile;y+=tile)for(let x=ox-tile;x<W+tile;x+=tile){ctx.fillStyle=((Math.floor((x-ox)/tile)+Math.floor((y-oy)/tile))%2)?'#142c23':'#173126';ctx.fillRect(x,y,tile-1,tile-1);if((Math.floor(x/48)*7+Math.floor(y/48)*13)%9===0){ctx.fillStyle='#28543a';ctx.fillRect(x+8,y+10,3,3);ctx.fillRect(x+29,y+31,4,2)}}
+ if(!player)return;const sx=x=>x-player.x+W/2,sy=y=>y-player.y+H/2;
+ // trees
+ for(let gy=Math.floor((player.y-H/2)/120)*120;gy<player.y+H/2+120;gy+=120)for(let gx=Math.floor((player.x-W/2)/120)*120;gx<player.x+W/2+120;gx+=120){if((Math.abs(gx*3+gy*7)%5)<2&&Math.hypot(gx-player.x,gy-player.y)>65){ctx.fillStyle='#0a1917';ctx.beginPath();ctx.arc(sx(gx),sy(gy),19,0,7);ctx.fill();ctx.fillStyle='#28583a';ctx.beginPath();ctx.arc(sx(gx)-3,sy(gy)-4,15,0,7);ctx.fill()}}
+ for(const o of orbs){ctx.fillStyle='#7cf9d0';ctx.shadowColor='#7cf9d0';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(sx(o.x),sy(o.y),o.r,0,7);ctx.fill();ctx.shadowBlur=0}
+ for(const e of enemies){let x=sx(e.x),y=sy(e.y);if(x<-50||x>W+50||y<-50||y>H+50)continue;ctx.fillStyle=e.boss?'#6517a3':'#0b1118';ctx.beginPath();ctx.arc(x,y,e.r+4,0,7);ctx.fill();ctx.fillStyle=e.hit>0?'#fff':e.boss?'#b333ed':'#72c45a';ctx.beginPath();ctx.arc(x,y,e.r,0,7);ctx.fill();ctx.fillStyle='#1b102b';ctx.fillRect(x-e.r*.55,y-e.r*.2,4,4);ctx.fillRect(x+e.r*.2,y-e.r*.2,4,4);if(e.boss){ctx.fillStyle='#20102b';ctx.fillRect(x-31,y-e.r-13,62,6);ctx.fillStyle='#ff4d86';ctx.fillRect(x-30,y-e.r-12,60*e.hp/e.maxHp,4)}}
+ // hero
+ let px=W/2,py=H/2;ctx.fillStyle='#090713';ctx.beginPath();ctx.ellipse(px,py+10,13,6,0,0,7);ctx.fill();ctx.fillStyle='#b44dff';ctx.beginPath();ctx.arc(px,py,12,0,7);ctx.fill();ctx.fillStyle='#211536';ctx.beginPath();ctx.moveTo(px-11,py-3);ctx.lineTo(px,py-19);ctx.lineTo(px+11,py-3);ctx.closePath();ctx.fill();ctx.fillStyle='#f0d8ff';ctx.fillRect(px+(player.face>0?2:-6),py-3,4,3);ctx.strokeStyle='#f0c6ff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px+player.face*7,py+3);ctx.lineTo(px+player.face*19,py-5);ctx.stroke();
+ for(const p of particles){ctx.globalAlpha=Math.max(0,p.t/.5);if(p.slash){ctx.strokeStyle='#e8a4ff';ctx.lineWidth=5;ctx.beginPath();ctx.arc(W/2,H/2,30,p.ang-.7,p.ang+.7);ctx.stroke()}else{ctx.fillStyle=p.color;ctx.fillRect(sx(p.x),sy(p.y),4,4)}ctx.globalAlpha=1}
+ if(state==='play'&&gameTime>0){ctx.fillStyle='#fff9';ctx.font='12px system-ui';ctx.fillText('Bosque de las Sombras',12,H-12)}
+}
+function end(win){state='end';$('controls').style.display='none';$('hud').style.display='none';$('tip').hidden=true;$('end').hidden=false;$('endtitle').innerHTML=win?'¡VICTORIA!':'FIN DEL JUEGO';$('endtext').textContent=`Nivel ${player.level} · ${kills} enemigos derrotados · ${coins} monedas. ${win?'¡Has vencido al jefe!':'La oscuridad te ha alcanzado. ¡Inténtalo otra vez!'}`}
+function frame(t){let dt=Math.min(.035,(t-last)/1000||0);last=t;update(dt);draw();raf=requestAnimationFrame(frame)}raf=requestAnimationFrame(frame);
+$('start').onclick=newGame;$('again').onclick=newGame;$('home').onclick=()=>{state='menu';$('end').hidden=true;$('menu').hidden=false;$('hud').style.display='none';$('controls').style.display='none';$('tip').hidden=true};$('how').onclick=()=>{$('help').hidden=!$('help').hidden};
+$('pause').onclick=()=>{if(state==='play'){state='paused';$('pause').textContent='▶';$('tip').textContent='Juego pausado'}else if(state==='paused'){state='play';$('pause').textContent='Ⅱ';$('tip').textContent='Mueve el joystick · Ataque automático al enemigo más cercano'}};
+document.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{if(b.dataset.up==='damage')player.damage=Math.ceil(player.damage*1.25);if(b.dataset.up==='health'){player.maxHp+=25;player.hp=Math.min(player.maxHp,player.hp+25)}if(b.dataset.up==='speed')player.speed*=1.15;$('levelup').hidden=true;$('controls').style.display='block';state='play';updateHud()});
+const stickEl=$('stick'),nub=$('nub');let pointer=null;
+function stickMove(e){let r=stickEl.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),max=42,d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max}stick.x=dx/max;stick.y=dy/max;nub.style.transform=`translate(${dx}px,${dy}px)`}
+stickEl.addEventListener('pointerdown',e=>{pointer=e.pointerId;stickEl.setPointerCapture(pointer);stickMove(e)});stickEl.addEventListener('pointermove',e=>{if(e.pointerId===pointer)stickMove(e)});function resetStick(){pointer=null;stick.x=stick.y=0;nub.style.transform='translate(0,0)'}stickEl.addEventListener('pointerup',resetStick);stickEl.addEventListener('pointercancel',resetStick);
+$('attack').addEventListener('pointerdown',()=>{if(state==='play'){attackTimer=0;let e=nearest();if(e){let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy)||1;player.x+=dx/d*0;player.y+=dy/d*0}}});
+addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault()});addEventListener('keyup',e=>keys[e.key]=false);
+})();
+</script>
+</body></html>
